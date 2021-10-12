@@ -31,12 +31,7 @@ public class LoanService {
     public void acceptLoan(final String lenderId, final long loanApplicationId){
         User lender = findUser(lenderId);
         LoanApplication loanApplication= findLoanApplication(loanApplicationId);
-        User borrower=loanApplication.getBorrower();
-        Money money=loanApplication.getAmount();
-        lender.withDraw(money);
-        borrower.topUp(money);
-        loanRepository.save(new Loan(lender, loanApplication));
-
+        loanRepository.save(loanApplication.acceptLoanApplication(lender));
     }
 
     @Transactional
@@ -51,12 +46,12 @@ public class LoanService {
 
     }
 
-    public List<Loan> findAllByBorrowedLoans(final User borrower){
-        return loanRepository.findAllByBorrower(borrower);
+    public List<Loan> findAllByBorrowedLoans(final User borrower, final Status status){
+        return loanRepository.findAllByBorrowerAndStatus(borrower, status);
     }
 
-    public List<Loan> findAllByLentLoans(final User lender){
-        return loanRepository.findAllByLender(lender);
+    public List<Loan> findAllByLentLoans(final User lender, final Status status){
+        return loanRepository.findAllByLenderAndStatus(lender, status);
     }
 
     private LoanApplication findLoanApplication(long loanApplicationId) {
@@ -65,8 +60,7 @@ public class LoanService {
     }
 
     private User findUser(String lenderId) {
-        User lender=userRepository.findById(lenderId).orElseThrow(()->new UserNotFoundException(lenderId));
-        return lender;
+        return userRepository.findById(lenderId).orElseThrow(()->new UserNotFoundException(lenderId));
     }
 
     public List<Loan> getLoans(){
