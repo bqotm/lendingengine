@@ -15,6 +15,8 @@ public final class Money {
     private double amount;
 
 
+    public static final Money ZERO=new Money(Currency.USD, 0);
+
     public Money(Currency currency, double amount) {
         this.currency = currency;
         this.amount = amount;
@@ -28,6 +30,10 @@ public final class Money {
             throw new IllegalArgumentException();
         }
         return new Money( currency,amount+money.getAmount());
+    }
+    
+    public Money times(double mult){
+        return new Money(currency, amount*mult);
     }
 
     public Money minus(final Money money){

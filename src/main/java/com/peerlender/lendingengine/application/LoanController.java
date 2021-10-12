@@ -1,6 +1,7 @@
 package com.peerlender.lendingengine.application;
 
 
+import com.peerlender.lendingengine.application.model.LoanRepaymentRequest;
 import com.peerlender.lendingengine.application.model.LoanRequest;
 import com.peerlender.lendingengine.application.service.TokenValidationService;
 import com.peerlender.lendingengine.domain.model.Loan;
@@ -51,10 +52,16 @@ public class LoanController {
         return loanApplicationRepository.findAll();
     }
 
-    @GetMapping(value = "/users")
-    public List<User> findUsers(HttpServletRequest request){
-        tokenValidationService.validateTokenAndGetUser(request.getHeader(HttpHeaders.AUTHORIZATION));
-        return userRepository.findAll();
+    @GetMapping(value="/loan/borrowed")
+    public List<Loan> findBorrowedLoans(@RequestHeader String authorization){
+        User borrower=tokenValidationService.validateTokenAndGetUser(authorization);
+        return loanService.findAllByBorrowedLoans(borrower);
+    }
+
+    @GetMapping(value="/loan/lent")
+    public List<Loan> findLentLoans(@RequestHeader String authorization){
+        User lender=tokenValidationService.validateTokenAndGetUser(authorization);
+        return loanService.findAllByLentLoans(lender);
     }
 
     @PostMapping(value = "/loan/accept/{loanApplicationId}")
@@ -64,6 +71,12 @@ public class LoanController {
 
         loanService.acceptLoan(lender.getUsername(), Long.parseLong(loanApplicationId));
 
+    }
+
+    @PostMapping(value = "/loan/repay")
+    public void repayLoan(@RequestBody LoanRepaymentRequest request, @RequestHeader String authorization){
+        User borrower=tokenValidationService.validateTokenAndGetUser(authorization);
+        loanService.repayLoan(request.getAmount(), request.getLoanId(), borrower);
     }
 
     @GetMapping(value = "/loans")

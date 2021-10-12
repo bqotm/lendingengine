@@ -1,10 +1,8 @@
 package com.peerlender.lendingengine.domain.model;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
+import javax.persistence.*;
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Entity
 public class Loan {
@@ -16,17 +14,21 @@ public class Loan {
     private User borrower;
     @ManyToOne
     private User lender;
-    private int amount;
+    @OneToOne(cascade= CascadeType.ALL)
+    private Money loanAmount;
     private double interestRate;
     private LocalDate dateLent;
     private LocalDate dateDue;
+    @OneToOne(cascade = CascadeType.ALL)
+    private Money amountRepayed;
 
     public Loan(){}
 
     public Loan(User lender, LoanApplication loanApplication){
         this.borrower=loanApplication.getBorrower();
         this.lender=lender;
-        this.amount=loanApplication.getAmount();
+        this.loanAmount=loanApplication.getAmount();
+        this.amountRepayed=Money.ZERO;
         this.interestRate=loanApplication.getInterestRate();
         this.dateLent=LocalDate.now();
         this.dateDue=LocalDate.now().plusDays(loanApplication.getRepaymentTermInDays());
@@ -44,8 +46,8 @@ public class Loan {
         return lender;
     }
 
-    public int getAmount() {
-        return amount;
+    public Money getAmount() {
+        return loanAmount;
     }
 
     public double getInterestRate() {
@@ -58,5 +60,46 @@ public class Loan {
 
     public LocalDate getDateDue() {
         return dateDue;
+    }
+
+    public Money getAmountRepayed() {
+        return amountRepayed;
+    }
+
+    public Money getAmountOwed(){
+        return loanAmount.times(1+interestRate/100d).minus(amountRepayed);
+    }
+
+    public void repay(final Money money){
+        borrower.withDraw(money);
+        lender.topUp(money);
+        amountRepayed=amountRepayed.add(money);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Loan loan = (Loan) o;
+        return id == loan.id && Double.compare(loan.interestRate, interestRate) == 0 && Objects.equals(borrower, loan.borrower) && Objects.equals(lender, loan.lender) && Objects.equals(loanAmount, loan.loanAmount) && Objects.equals(dateLent, loan.dateLent) && Objects.equals(dateDue, loan.dateDue) && Objects.equals(amountRepayed, loan.amountRepayed);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, borrower, lender, loanAmount, interestRate, dateLent, dateDue, amountRepayed);
+    }
+
+    @Override
+    public String toString() {
+        return "Loan{" +
+                "id=" + id +
+                ", borrower=" + borrower +
+                ", lender=" + lender +
+                ", loanAmount=" + loanAmount +
+                ", interestRate=" + interestRate +
+                ", dateLent=" + dateLent +
+                ", dateDue=" + dateDue +
+                ", amountRepayed=" + amountRepayed +
+                '}';
     }
 }

@@ -1,16 +1,16 @@
 package com.peerlender.lendingengine.domain.service;
 
 import com.peerlender.lendingengine.domain.exception.LoanApplicationNotFoundException;
+import com.peerlender.lendingengine.domain.exception.LoanNotFoundException;
 import com.peerlender.lendingengine.domain.exception.UserNotFoundException;
-import com.peerlender.lendingengine.domain.model.Loan;
-import com.peerlender.lendingengine.domain.model.LoanApplication;
-import com.peerlender.lendingengine.domain.model.User;
+import com.peerlender.lendingengine.domain.model.*;
 import com.peerlender.lendingengine.domain.repository.LoanApplicationRepository;
 import com.peerlender.lendingengine.domain.repository.LoanRepository;
 import com.peerlender.lendingengine.domain.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.transaction.Transactional;
 import java.util.List;
 
 @Component
@@ -27,12 +27,46 @@ public class LoanService {
         this.loanRepository = loanRepository;
     }
 
+    @Transactional
     public void acceptLoan(final String lenderId, final long loanApplicationId){
-        User lender=userRepository.findById(lenderId).orElseThrow(()->new UserNotFoundException(lenderId));
-        LoanApplication loanApplication=loanApplicationRepository.findById(loanApplicationId)
-                .orElseThrow(()->new LoanApplicationNotFoundException(loanApplicationId));
+        User lender = findUser(lenderId);
+        LoanApplication loanApplication= findLoanApplication(loanApplicationId);
+        User borrower=loanApplication.getBorrower();
+        Money money=loanApplication.getAmount();
+        lender.withDraw(money);
+        borrower.topUp(money);
         loanRepository.save(new Loan(lender, loanApplication));
 
+    }
+
+    @Transactional
+    public void repayLoan(final Money amountToRepay,
+                          final long loanId,
+                          final User borrower){
+        Loan loan=loanRepository.findOneByIdAndBorrower(loanId, borrower).orElseThrow(LoanNotFoundException::new);
+
+        Money actualPaidAmount=amountToRepay.getAmount() > loan.getAmountOwed().getAmount() ?
+                loan.getAmountOwed() : amountToRepay;
+        loan.repay(actualPaidAmount);
+
+    }
+
+    public List<Loan> findAllByBorrowedLoans(final User borrower){
+        return loanRepository.findAllByBorrower(borrower);
+    }
+
+    public List<Loan> findAllByLentLoans(final User lender){
+        return loanRepository.findAllByLender(lender);
+    }
+
+    private LoanApplication findLoanApplication(long loanApplicationId) {
+        return loanApplicationRepository.findById(loanApplicationId)
+                .orElseThrow(()->new LoanApplicationNotFoundException(loanApplicationId));
+    }
+
+    private User findUser(String lenderId) {
+        User lender=userRepository.findById(lenderId).orElseThrow(()->new UserNotFoundException(lenderId));
+        return lender;
     }
 
     public List<Loan> getLoans(){
