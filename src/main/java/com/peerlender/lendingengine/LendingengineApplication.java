@@ -1,6 +1,8 @@
 package com.peerlender.lendingengine;
 
 import com.peerlender.lendingengine.domain.model.Balance;
+import com.peerlender.lendingengine.domain.model.Currency;
+import com.peerlender.lendingengine.domain.model.Money;
 import com.peerlender.lendingengine.domain.model.User;
 import com.peerlender.lendingengine.domain.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +24,14 @@ public class LendingengineApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		userRepository.save(new User("john","john","doe",29,"swe", new Balance()));
-		userRepository.save(new User("sean","sean","deckard",80,"veteran", new Balance()));
-		userRepository.save(new User("kermit","kermit","lepard",36,"gigolo", new Balance()));
+		User john=new User("john","john","doe",29,"swe", new Balance());
+		User peter=new User("peter","peter","deckard",80,"veteran", new Balance());
+		User kermit=new User("kermit","kermit","lepard",36,"gigolo", new Balance());
+		john.topUp(new Money(Currency.USD, 100));
+		peter.topUp(new Money(Currency.USD, 100));
+		userRepository.save(john);
+		userRepository.save(peter);
+		userRepository.save(kermit);
 
 	}
 }
